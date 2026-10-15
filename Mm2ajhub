@@ -1506,7 +1506,7 @@ end)
 -- ============================================================
 addSection("Auto Farm", "Coin Farm")
 
-local COIN_URL = "https://raw.githubusercontent.com/stealbr519-dotcom/Mm2Ajhubb/main/coinfarm.lua"
+local COIN_URL = "https://raw.githubusercontent.com/stealbr519-dotcom/Mm2Ajhub/main/coinfarm.lua"
 
 addButtonRow(tabs["Auto Farm"].frame, "OPEN COIN FARMER", ACCENT_DIM, function()
     local par = (gethui and gethui()) or CoreGui
