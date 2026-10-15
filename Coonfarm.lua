@@ -1,0 +1,656 @@
+-- ============================================================
+-- MM2 COIN COLLECTOR — with Anti-AFK + Avoid Murderer (20 studs)
+-- ============================================================
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+local VirtualUser = game:GetService("VirtualUser")
+local LocalPlayer = Players.LocalPlayer
+
+local parent = (gethui and gethui()) or CoreGui
+local old = parent:FindFirstChild("CoinCollectorTest")
+if old then old:Destroy() end
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "CoinCollectorTest"
+gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.Parent = parent
+
+local main = Instance.new("Frame")
+main.Size = UDim2.new(0, 300, 0, 300)
+main.Position = UDim2.new(0.5, -150, 0.5, -150)
+main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+main.BorderSizePixel = 0
+main.Active = true
+main.Parent = gui
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 10)
+Instance.new("UIStroke", main).Color = Color3.fromRGB(60, 60, 60)
+
+local header = Instance.new("Frame")
+header.Size = UDim2.new(1, 0, 0, 34)
+header.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
+header.BorderSizePixel = 0
+header.Parent = main
+Instance.new("UICorner", header).CornerRadius = UDim.new(0, 10)
+local hFix = Instance.new("Frame")
+hFix.Size = UDim2.new(1, 0, 0, 12)
+hFix.Position = UDim2.new(0, 0, 1, -12)
+hFix.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
+hFix.BorderSizePixel = 0
+hFix.ZIndex = 2
+hFix.Parent = header
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -20, 1, 0)
+title.Position = UDim2.new(0, 14, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "COIN COLLECTOR"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 13
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.ZIndex = 3
+title.Parent = header
+
+do
+    local dragging, dragStart, startPos, dragInput
+    header.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = main.Position
+        end
+    end)
+    header.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    UIS.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+            dragInput = nil
+        end
+    end)
+end
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, -20, 0, 20)
+statusLabel.Position = UDim2.new(0, 10, 0, 42)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "Status: ready"
+statusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.TextSize = 12
+statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+statusLabel.Parent = main
+
+local coinsLabel = Instance.new("TextLabel")
+coinsLabel.Size = UDim2.new(1, -20, 0, 20)
+coinsLabel.Position = UDim2.new(0, 10, 0, 62)
+coinsLabel.BackgroundTransparency = 1
+coinsLabel.Text = "Coins: reading..."
+coinsLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+coinsLabel.Font = Enum.Font.GothamBold
+coinsLabel.TextSize = 13
+coinsLabel.TextXAlignment = Enum.TextXAlignment.Left
+coinsLabel.Parent = main
+
+local progressLabel = Instance.new("TextLabel")
+progressLabel.Size = UDim2.new(1, -20, 0, 20)
+progressLabel.Position = UDim2.new(0, 10, 0, 82)
+progressLabel.BackgroundTransparency = 1
+progressLabel.Text = "Progress: idle"
+progressLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+progressLabel.Font = Enum.Font.Gotham
+progressLabel.TextSize = 12
+progressLabel.TextXAlignment = Enum.TextXAlignment.Left
+progressLabel.Parent = main
+
+local avoidLabel = Instance.new("TextLabel")
+avoidLabel.Size = UDim2.new(1, -20, 0, 20)
+avoidLabel.Position = UDim2.new(0, 10, 0, 102)
+avoidLabel.BackgroundTransparency = 1
+avoidLabel.Text = "Avoid: idle"
+avoidLabel.TextColor3 = Color3.fromRGB(120, 200, 255)
+avoidLabel.Font = Enum.Font.Gotham
+avoidLabel.TextSize = 12
+avoidLabel.TextXAlignment = Enum.TextXAlignment.Left
+avoidLabel.Parent = main
+
+local afkLabel = Instance.new("TextLabel")
+afkLabel.Size = UDim2.new(1, -20, 0, 20)
+afkLabel.Position = UDim2.new(0, 10, 0, 122)
+afkLabel.BackgroundTransparency = 1
+afkLabel.Text = "Anti-AFK: off"
+afkLabel.TextColor3 = Color3.fromRGB(200, 140, 255)
+afkLabel.Font = Enum.Font.Gotham
+afkLabel.TextSize = 12
+afkLabel.TextXAlignment = Enum.TextXAlignment.Left
+afkLabel.Parent = main
+
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(1, -20, 0, 34)
+toggleBtn.Position = UDim2.new(0, 10, 0, 148)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+toggleBtn.BorderSizePixel = 0
+toggleBtn.Text = "START FARM"
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.TextSize = 13
+toggleBtn.AutoButtonColor = false
+toggleBtn.Parent = main
+Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 6)
+
+local avoidBtn = Instance.new("TextButton")
+avoidBtn.Size = UDim2.new(1, -20, 0, 28)
+avoidBtn.Position = UDim2.new(0, 10, 0, 186)
+avoidBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+avoidBtn.BorderSizePixel = 0
+avoidBtn.Text = "AVOID MURDERER: OFF"
+avoidBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+avoidBtn.Font = Enum.Font.GothamBold
+avoidBtn.TextSize = 12
+avoidBtn.AutoButtonColor = false
+avoidBtn.Parent = main
+Instance.new("UICorner", avoidBtn).CornerRadius = UDim.new(0, 6)
+
+local afkBtn = Instance.new("TextButton")
+afkBtn.Size = UDim2.new(1, -20, 0, 28)
+afkBtn.Position = UDim2.new(0, 10, 0, 218)
+afkBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+afkBtn.BorderSizePixel = 0
+afkBtn.Text = "ANTI-AFK: OFF"
+afkBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+afkBtn.Font = Enum.Font.GothamBold
+afkBtn.TextSize = 12
+afkBtn.AutoButtonColor = false
+afkBtn.Parent = main
+Instance.new("UICorner", afkBtn).CornerRadius = UDim.new(0, 6)
+
+local killBtn = Instance.new("TextButton")
+killBtn.Size = UDim2.new(1, -20, 0, 26)
+killBtn.Position = UDim2.new(0, 10, 0, 250)
+killBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+killBtn.BorderSizePixel = 0
+killBtn.Text = "TEST SELF KILL"
+killBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+killBtn.Font = Enum.Font.GothamBold
+killBtn.TextSize = 11
+killBtn.AutoButtonColor = false
+killBtn.Parent = main
+Instance.new("UICorner", killBtn).CornerRadius = UDim.new(0, 6)
+
+-- ============================================================
+-- CONFIG
+-- ============================================================
+local GLIDE_SPEED = 19
+local AVOID_RADIUS = 20
+local AVOID_DISTANCE = 20
+local MAX_DIST = 300
+local UNDER_MAP_OFFSET = -1.3
+local SCAN_INTERVAL = 0.1
+
+-- ============================================================
+-- STATE
+-- ============================================================
+local running = false
+local resuming = false
+local collectedThisRun = 0
+local collectedCoins = {}
+local avoidEnabled = false
+local cachedMurderer = nil
+local scanThread = nil
+
+-- ============================================================
+-- ANTI-AFK
+-- ============================================================
+local afkEnabled = false
+local afkConnection = nil
+local afkHeartbeat = nil
+
+local function setupAntiAFK()
+    if afkConnection then return end
+    afkConnection = LocalPlayer.Idled:Connect(function()
+        if not afkEnabled then return end
+        pcall(function()
+            VirtualUser:CaptureController()
+            VirtualUser:ClickButton2(Vector2.new(0, 0))
+            VirtualUser:ClickButton1(Vector2.new(0, 0))
+        end)
+        afkLabel.Text = "Anti-AFK: responded"
+    end)
+end
+
+local function startAFKPoke()
+    if afkHeartbeat then return end
+    afkHeartbeat = task.spawn(function()
+        while afkEnabled do
+            task.wait(60)
+            if afkEnabled then
+                pcall(function()
+                    VirtualUser:CaptureController()
+                    VirtualUser:ClickButton2(Vector2.new(0, 0))
+                end)
+            end
+        end
+    end)
+end
+
+local function stopAFK()
+    if afkConnection then afkConnection:Disconnect(); afkConnection = nil end
+    afkHeartbeat = nil
+    afkLabel.Text = "Anti-AFK: off"
+end
+
+-- ============================================================
+-- BAG UI
+-- ============================================================
+local fullNotification, coinsTextLabel, fullBagIcon, emptyBagIcon
+
+local function findBagUI()
+    fullNotification = nil
+    coinsTextLabel = nil
+    fullBagIcon = nil
+    emptyBagIcon = nil
+    local pg = LocalPlayer:FindFirstChild("PlayerGui")
+    if not pg then return end
+    for _, gui in ipairs(pg:GetChildren()) do
+        if gui:IsA("ScreenGui") then
+            for _, desc in ipairs(gui:GetDescendants()) do
+                if desc:IsA("TextLabel") then
+                    if desc.Name == "FullBagNotification" then fullNotification = desc
+                    elseif desc.Name == "Coins" then coinsTextLabel = desc end
+                elseif desc:IsA("ImageLabel") then
+                    if desc.Name == "FullBagIcon" then fullBagIcon = desc
+                    elseif desc.Name == "EmptyBagIcon" then emptyBagIcon = desc end
+                end
+            end
+        end
+    end
+end
+
+local function isBagFull()
+    if not fullBagIcon or not fullBagIcon.Parent then findBagUI() end
+    if fullBagIcon and fullBagIcon.Parent and emptyBagIcon and emptyBagIcon.Parent then
+        if fullBagIcon.Visible and not emptyBagIcon.Visible then return true end
+    end
+    if fullNotification and fullNotification.Parent then
+        if fullNotification.Visible and (fullNotification.Text or ""):upper():find("FULL") then return true end
+    end
+    return false
+end
+
+local function readCoins()
+    if not coinsTextLabel or not coinsTextLabel.Parent then findBagUI() end
+    if coinsTextLabel and coinsTextLabel.Parent then return coinsTextLabel.Text end
+    return "?"
+end
+
+-- ============================================================
+-- MURDERER DETECTION
+-- ============================================================
+local function hasKnife(plr)
+    if plr == LocalPlayer then return false end
+    local char = plr.Character
+    if char then
+        for _, item in ipairs(char:GetChildren()) do
+            if item:IsA("Tool") and string.find(string.lower(item.Name), "knife") then return true end
+        end
+    end
+    local bp = plr:FindFirstChild("Backpack")
+    if bp then
+        for _, item in ipairs(bp:GetChildren()) do
+            if item:IsA("Tool") and string.find(string.lower(item.Name), "knife") then return true end
+        end
+    end
+    return false
+end
+
+local function scanForMurderer()
+    local myChar = LocalPlayer.Character
+    if not myChar then return nil end
+    local myHRP = myChar:FindFirstChild("HumanoidRootPart")
+    if not myHRP then return nil end
+    local best, bestDist = nil, math.huge
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and hasKnife(plr) then
+            local char = plr.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                local hum = char:FindFirstChild("Humanoid")
+                if hum and hum.Health > 0 then
+                    local d = (char.HumanoidRootPart.Position - myHRP.Position).Magnitude
+                    if d < bestDist then bestDist = d; best = plr end
+                end
+            end
+        end
+    end
+    if best then return best, bestDist end
+    return nil, math.huge
+end
+
+local function startScanThread()
+    if scanThread then return end
+    scanThread = task.spawn(function()
+        while true do
+            local m, d = scanForMurderer()
+            cachedMurderer = { player = m, dist = d }
+            task.wait(SCAN_INTERVAL)
+        end
+    end)
+end
+
+-- ============================================================
+-- COIN CONTAINER
+-- ============================================================
+local coinContainer, mapName
+
+local function findCoinContainer()
+    for _, obj in ipairs(workspace:GetChildren()) do
+        if obj:IsA("Model") or obj:IsA("Folder") then
+            local c = obj:FindFirstChild("CoinContainer")
+            if c then coinContainer = c; mapName = obj.Name; return c end
+        end
+        for _, sub in ipairs(obj:GetChildren()) do
+            if sub:IsA("Model") or sub:IsA("Folder") then
+                local c = sub:FindFirstChild("CoinContainer")
+                if c then coinContainer = c; mapName = sub.Name; return c end
+            end
+        end
+    end
+    return nil
+end
+
+local function getCoinPosition(coin)
+    if not coin or not coin.Parent then return nil end
+    if coin:IsA("BasePart") then return coin.Position end
+    return nil
+end
+
+local function getNearestCoinDistance()
+    local myChar = LocalPlayer.Character
+    if not myChar then return math.huge end
+    local myHRP = myChar:FindFirstChild("HumanoidRootPart")
+    if not myHRP then return math.huge end
+    if not coinContainer or not coinContainer.Parent then findCoinContainer() end
+    if not coinContainer then return math.huge end
+    local closest = math.huge
+    for _, coin in ipairs(coinContainer:GetChildren()) do
+        local pos = getCoinPosition(coin)
+        if pos then
+            local d = (pos - myHRP.Position).Magnitude
+            if d < closest then closest = d end
+        end
+    end
+    return closest
+end
+
+-- ============================================================
+-- TWEEN HELPERS
+-- ============================================================
+local function tweenTo(targetCFrame)
+    local myChar = LocalPlayer.Character
+    if not myChar then return false end
+    local myHRP = myChar:FindFirstChild("HumanoidRootPart")
+    if not myHRP then return false end
+    local dist = (targetCFrame.Position - myHRP.Position).Magnitude
+    local duration = math.clamp(dist / GLIDE_SPEED, 0.1, 3.0)
+    local tw = TweenService:Create(myHRP, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
+    tw:Play()
+    tw.Completed:Wait()
+    return true
+end
+
+local function glideToCoin(coin)
+    local pos = getCoinPosition(coin)
+    if not pos then return false end
+    local targetPos = pos + Vector3.new(0, UNDER_MAP_OFFSET, 0)
+    local targetCFrame = CFrame.new(targetPos) * CFrame.Angles(math.rad(-90), 0, 0)
+    return tweenTo(targetCFrame)
+end
+
+local function fleeFromMurderer(murderer)
+    local myChar = LocalPlayer.Character
+    if not myChar then return end
+    local myHRP = myChar:FindFirstChild("HumanoidRootPart")
+    if not myHRP then return end
+    local mChar = murderer.Character
+    if not mChar then return end
+    local mHRP = mChar:FindFirstChild("HumanoidRootPart")
+    if not mHRP then return end
+    local away = myHRP.Position - mHRP.Position
+    if away.Magnitude < 0.1 then away = Vector3.new(1, 0, 0) end
+    local dir = away.Unit
+    local targetPos = myHRP.Position + (dir * AVOID_DISTANCE)
+    local targetCFrame = CFrame.new(targetPos) * CFrame.Angles(math.rad(-90), 0, 0)
+    tweenTo(targetCFrame)
+end
+
+local function selfKill()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    hrp.CFrame = CFrame.new(hrp.Position.X, -1000, hrp.Position.Z)
+end
+
+-- ============================================================
+-- FARM LOOP
+-- ============================================================
+local function farmLoop()
+    statusLabel.Text = "Status: farming..."
+    while running do
+        local char = LocalPlayer.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then
+            statusLabel.Text = "Status: no character — stopping"
+            running = false
+            break
+        end
+
+        if isBagFull() then
+            statusLabel.Text = "Status: BAG FULL — resetting"
+            running = false
+            task.wait(0.15)
+            selfKill()
+            break
+        end
+
+        if avoidEnabled then
+            local m = cachedMurderer and cachedMurderer.player
+            local d = cachedMurderer and cachedMurderer.dist or math.huge
+            if m and d < AVOID_RADIUS then
+                avoidLabel.Text = "Avoid: FLEEING (" .. math.floor(d) .. " studs)"
+                statusLabel.Text = "Status: fleeing murderer!"
+                fleeFromMurderer(m)
+                task.wait(0.05)
+                continue
+            else
+                avoidLabel.Text = "Avoid: safe"
+            end
+        else
+            avoidLabel.Text = "Avoid: off"
+        end
+
+        coinsLabel.Text = "Coins: " .. tostring(readCoins())
+
+        if getNearestCoinDistance() > MAX_DIST then
+            statusLabel.Text = "Status: coins too far — waiting"
+            task.wait(1)
+            continue
+        end
+
+        local coin = nil
+        local nearestD = math.huge
+        local myHRP = char:FindFirstChild("HumanoidRootPart")
+        if coinContainer and myHRP then
+            for _, c in ipairs(coinContainer:GetChildren()) do
+                if getCoinPosition(c) and not collectedCoins[c] then
+                    local dd = (c.Position - myHRP.Position).Magnitude
+                    if dd < nearestD then nearestD = dd; coin = c end
+                end
+            end
+        end
+
+        if not coin then
+            statusLabel.Text = "Status: all nearby coins done — waiting"
+            task.wait(0.5)
+            continue
+        end
+
+        local before = tonumber(readCoins()) or 0
+        statusLabel.Text = "Status: gliding to " .. coin.Name
+        glideToCoin(coin)
+        task.wait(0.05)
+        collectedCoins[coin] = true
+        local after = tonumber(readCoins()) or 0
+        if after > before then
+            collectedThisRun = collectedThisRun + 1
+            progressLabel.Text = "Progress: collected " .. collectedThisRun
+        end
+        task.wait(0.01)
+    end
+    toggleBtn.Text = "START FARM"
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+end
+
+local function startFarm()
+    if running then return end
+    resuming = true
+    running = true
+    collectedThisRun = 0
+    collectedCoins = {}
+    toggleBtn.Text = "STOP FARM"
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 130, 80)
+    findBagUI()
+    local c = findCoinContainer()
+    if c then
+        statusLabel.Text = "Status: found coins in " .. tostring(mapName)
+    else
+        statusLabel.Text = "Status: waiting for map..."
+    end
+    startScanThread()
+    task.spawn(farmLoop)
+end
+
+local function stopFarm()
+    running = false
+    resuming = false
+    toggleBtn.Text = "START FARM"
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    statusLabel.Text = "Status: stopped"
+end
+
+LocalPlayer.CharacterRemoving:Connect(function()
+    running = false
+    statusLabel.Text = "Status: died — farm paused"
+    toggleBtn.Text = "START FARM"
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+end)
+
+LocalPlayer.CharacterAdded:Connect(function()
+    fullNotification = nil
+    coinsTextLabel = nil
+    fullBagIcon = nil
+    emptyBagIcon = nil
+    coinContainer = nil
+    collectedCoins = {}
+    running = false
+    task.wait(1)
+    findBagUI()
+    if not resuming then
+        statusLabel.Text = "Status: respawned (farm off)"
+        return
+    end
+    statusLabel.Text = "Status: waiting for new round..."
+    toggleBtn.Text = "START FARM"
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    local waited = 0
+    local ready = false
+    while waited < 120 do
+        task.wait(1)
+        waited = waited + 1
+        if running then return end
+        if not resuming then return end
+        local char = LocalPlayer.Character
+        local hasChar = char and char:FindFirstChild("HumanoidRootPart")
+        if hasChar then
+            local nearestDist = getNearestCoinDistance()
+            if nearestDist < MAX_DIST then ready = true; break end
+        end
+    end
+    if ready then
+        statusLabel.Text = "Status: new round — resuming"
+        collectedThisRun = 0
+        collectedCoins = {}
+        running = true
+        toggleBtn.Text = "STOP FARM"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 130, 80)
+        startScanThread()
+        task.spawn(farmLoop)
+    else
+        statusLabel.Text = "Status: no round started in time"
+    end
+end)
+
+toggleBtn.MouseButton1Click:Connect(function()
+    if running then
+        stopFarm()
+    else
+        local char = LocalPlayer.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then
+            statusLabel.Text = "Status: not spawned yet"
+            return
+        end
+        startFarm()
+    end
+end)
+
+avoidBtn.MouseButton1Click:Connect(function()
+    avoidEnabled = not avoidEnabled
+    if avoidEnabled then
+        avoidBtn.Text = "AVOID MURDERER: ON"
+        avoidBtn.BackgroundColor3 = Color3.fromRGB(0, 130, 80)
+        avoidLabel.Text = "Avoid: armed"
+        startScanThread()
+    else
+        avoidBtn.Text = "AVOID MURDERER: OFF"
+        avoidBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        avoidLabel.Text = "Avoid: off"
+    end
+end)
+
+afkBtn.MouseButton1Click:Connect(function()
+    afkEnabled = not afkEnabled
+    if afkEnabled then
+        afkBtn.Text = "ANTI-AFK: ON"
+        afkBtn.BackgroundColor3 = Color3.fromRGB(0, 130, 80)
+        afkLabel.Text = "Anti-AFK: armed"
+        setupAntiAFK()
+        startAFKPoke()
+    else
+        afkBtn.Text = "ANTI-AFK: OFF"
+        afkBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        stopAFK()
+    end
+end)
+
+killBtn.MouseButton1Click:Connect(function()
+    statusLabel.Text = "Status: testing self-kill..."
+    selfKill()
+end)
+
+findBagUI()
+findCoinContainer()
+if coinsTextLabel then
+    coinsLabel.Text = "Coins: " .. coinsTextLabel.Text
+end
+print("✅ Coin Collector + Anti-AFK + Avoid Murderer (20 studs) loaded")
